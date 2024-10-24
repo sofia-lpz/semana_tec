@@ -2,17 +2,16 @@ import azure.functions as func
 import logging
 from openai import OpenAI
 
-secret_key =
-
-client = OpenAI(
-    api_key=secret_key,
-)
+secret_key = 
 
 completion_bp = func.Blueprint()
-
 @completion_bp.route(route="completion", auth_level=func.AuthLevel.ANONYMOUS)
 def completion(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
+
+    client = OpenAI(
+        api_key=secret_key,
+    )
 
     try:
         req_body = req.get_json()
@@ -22,7 +21,7 @@ def completion(req: func.HttpRequest) -> func.HttpResponse:
             status_code=400
         )
 
-    model = req_body.get('model', 'gpt-4o')
+    model = req_body.get('model', 'gpt-3.5-turbo')
     prompt = req_body.get('prompt')
     max_tokens = req_body.get('max_tokens', 100)
     temperature = req_body.get('temperature', 0.5)
@@ -33,17 +32,31 @@ def completion(req: func.HttpRequest) -> func.HttpResponse:
             status_code=400
         )
 
+    # Format the prompt as an array of message objects
+    messages = [{"role": "user", "content": prompt}]
+
     try:
-        completion = client.completions.create(
+        completion = client.chat.completions.create(
             model=model,
-            prompt=prompt,
+            messages=messages,
             max_tokens=max_tokens,
             temperature=temperature
         )
+        logging.info(f"Completion response: {completion}")
     except Exception as e:
+        logging.error(f"Error generating completion: {str(e)}", exc_info=True)
         return func.HttpResponse(
             f"Error generating completion: {str(e)}",
             status_code=500
         )
 
-    return func.HttpResponse(f"Completion: {completion.choices[0].text}")
+    try:
+        completion_text = completion.choices[0].message.content
+    except (IndexError, AttributeError) as e:
+        logging.error(f"Error extracting completion text: {str(e)}", exc_info=True)
+        return func.HttpResponse(
+            "Error extracting completion text",
+            status_code=500
+        )
+
+    return func.HttpResponse(f"Completion: {completion_text}")
