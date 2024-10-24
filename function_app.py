@@ -1,7 +1,7 @@
 import azure.functions as func
 import logging
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 @app.route(route="http_trigger")
 def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
@@ -24,44 +24,8 @@ def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
              status_code=200
         )
 
-@app.route(route="completionAPI", auth_level=func.AuthLevel.ANONYMOUS)
-def completionAPI(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('Python HTTP trigger function processed a request.')
+from completion import completion_bp
+app.register_functions(completion_bp)
 
-    name = req.params.get('name')
-    if not name:
-        try:
-            req_body = req.get_json()
-        except ValueError:
-            pass
-        else:
-            name = req_body.get('name')
-
-    if name:
-        return func.HttpResponse(f"Hello, {name}. This HTTP triggered function executed successfully.")
-    else:
-        return func.HttpResponse(
-             "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response.",
-             status_code=200
-        )
-
-@app.route(route="completion", auth_level=func.AuthLevel.FUNCTION)
-def completion(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('Python HTTP trigger function processed a request.')
-
-    name = req.params.get('name')
-    if not name:
-        try:
-            req_body = req.get_json()
-        except ValueError:
-            pass
-        else:
-            name = req_body.get('name')
-
-    if name:
-        return func.HttpResponse(f"Hello, {name}. This HTTP triggered function executed successfully.")
-    else:
-        return func.HttpResponse(
-             "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response.",
-             status_code=200
-        )
+from image import image_bp
+app.register_functions(image_bp)
