@@ -5,39 +5,36 @@ function doPost(e) {
       var message = GmailApp.getMessageById(data[i].id);
       message.reply(data[i].body);
     }
-    return ContentService.createTextOutput('Success');
+    return ContentService.createTextOutput('Success').setMimeType(ContentService.MimeType.TEXT);
   } catch (e) {
-    return ContentService.createTextOutput('Error: ' + e);
+    return ContentService.createTextOutput('error').setMimeType(ContentService.MimeType.TEXT);
   }
 }
 
 function doGet(e) {
   try {
-    var threads = GmailApp.search('is:unread');
-    var messages = GmailApp.getMessagesForThreads(threads);
-
-    var data = [];
-    
-    for (var i = 0; i < messages.length; i++) {
-      for (var j = 0; j < messages[i].length; j++) {
-        var message = messages[i][j];
-        data.push({
-          id: message.getId(),
-          sender: message.getFrom(),
-          subject: message.getSubject(),
-          body: message.getPlainBody()
-        });
-      }
+    var threads = GmailApp.search('is:unread', 0, 1);
+    if (threads.length === 0) {
+      return ContentService.createTextOutput('No unread emails found').setMimeType(ContentService.MimeType.TEXT);
     }
 
-    var jsonOutput = JSON.stringify(data);
+    var messages = GmailApp.getMessagesForThreads(threads);
+    var firstMessage = messages[0][0];
 
+    var data = {
+      id: firstMessage.getId(),
+      sender: firstMessage.getFrom(),
+      subject: firstMessage.getSubject(),
+      body: firstMessage.getPlainBody()
+    };
+
+    var jsonOutput = JSON.stringify(data);
     Logger.log(jsonOutput);
 
     return ContentService
       .createTextOutput(jsonOutput)
       .setMimeType(ContentService.MimeType.JSON);
-    
+
   } catch (e) {
     Logger.log('Error: ' + e);
     return ContentService.createTextOutput('Error: ' + e);
